@@ -1,8 +1,5 @@
 import json ,time, subprocess, os
 from collections import defaultdict
-date = (time.strftime("%m/%d/%Y %I:%M %p"))
-day = (time.strftime("%m/%d/%Y"))
-hrsec = (time.strftime("%H:%M"))
 
 def add_firstname():
     employee_name_file = open('employee_firstname_file.py', 'r')
@@ -106,7 +103,7 @@ def add_first_employee():
     print("Employee added!")
     time.sleep(2)
 
-def insert_time():
+def add_time():
     insert_time_dict = {}
     employee = input("Enter the firstname of the employee to add the time to.").lower()
     timefile = open(employee + "inout.txt", 'a')
@@ -118,19 +115,15 @@ def insert_time():
         if time_in[0]== '0':
             the_hours = time_in[1:2]
         to_military = eval(the_hours)
+        military_time = str(to_military + 12)
         minutes_to_add = time_in[2:5]
-        if to_military == "12":
-            military_time = str(to_military)
-            time_in = military_time + minutes_to_add
-        else:
-            military_time = str(to_military + 12)
-            time_in = military_time + minutes_to_add
+        time_in = military_time + minutes_to_add
 
     time_out = input("Enter the time out (12 hour clock)  (hh:mm)")
     am_or_pm = input("AM or PM?").lower()
     if am_or_pm == 'pm':
         the_hours = time_out[0:2]
-        if time_out[0] == '0':
+        if time_out[0]== '0':
             the_hours = time_out[1:2]
         to_military = eval(the_hours)
         military_time = str(to_military + 12)
@@ -240,11 +233,41 @@ def total_hours():
     total_time_str = str(total_time)
     return(total_time_str)
 
+def print_total_hours():
+    timefile = open(employeeHr + "inout.txt", 'r')
+    totalhrs = 0
+    totalminute = 0
+    for line in timefile:
+        #print(line)
+        decode_json = json.loads(line)
+        time_dict = decode_json
+        intime = time_dict['IN']
+        outtime = time_dict['OUT']
+        out_time = outtime.split(':')
+        intime_num = intime.split(':')
+        #print(intime_num)
+        hourin_str = intime_num[0]
+        hourin = int(hourin_str)
+        minutein_str = intime_num[1]
+        minutein = int(minutein_str)
+        hourout_str = out_time[0]
+        hourout = int(hourout_str)
+        minuteout_str = out_time[1]
+        minuteout = int(minuteout_str)
+        totalhrs = (hourout - hourin) + totalhrs
+        #print(totalhrs)
+        totalminute = (minuteout - minutein) + totalminute
+        #print(totalminute)
+    minstohr = totalminute/60
+    total_time_float = totalhrs + minstohr
+    total_time = round(total_time_float , 2)
+    total_time_str = str(total_time)
+    print(total_time_str + " hours.")
+
 def create_report(person):
     timefile = open(person + "inout.txt", 'r')
     report_file = open(person + 'report.txt', 'a')
     report_file.write(person.upper() +' '+ lastname.upper())
-    #The rjust value must be great than the string length or else the original string is just returned.
     payperiodtitle = 'PAY PERIOD ENDING: __/__/__'.rjust(40)
     report_file.write(payperiodtitle + '\n' + '\n')
     datetitle = 'DATE'.ljust(15)
@@ -256,7 +279,6 @@ def create_report(person):
     hourtitle = 'HOURS\n'
     report_file.write(hourtitle)
     for line in timefile:
-        #print(line)
         decode_json = json.loads(line)
         time_dict = decode_json
         intime = time_dict['IN']
@@ -331,15 +353,12 @@ def create_report(person):
         except IndexError:
             netPay_string = netPay_string + '0'
         report_file.write(stringtime+'\n')
-    state_tax_title = "STATE TAX: $"+ str(state_tax(grosspay, id_number))+'.00'
-    federal_tax_title = 'FEDERAL TAX: $' + str(federal_tax(grosspay, id_number))+'.00'
-    fica_tax_title = 'FICA: $'+ str(fica_round)
-    medicare_tax_title = ("\n                                MEDICARE: $" + medicare_round_str)
-    report_file.write("\nTOTAL TIME:    " + total_hours() + state_tax_title.rjust(30))
-    report_file.write("\nPAY:         * $" + str(pay)+'0' + federal_tax_title.rjust(29))
-    report_file.write("\nGROSS:         $"+(grosspay_round_string) + fica_tax_title.rjust(22))
-    report_file.write(medicare_tax_title.rjust(100))
-    report_file.write("\n                                TOTAL TAX: $" + totalTax_string)
+
+    report_file.write("\nTOTAL TIME:    " + total_hours() +'       STATE TAX: $'+ str(state_tax(grosspay, id_number))+'.00')
+    report_file.write("\nPAY:         * $" + str(pay)+'0' +'      FEDERAL TAX: $' + str(federal_tax(grosspay, id_number))+'.00')
+    report_file.write("\nGROSS:         $" +(grosspay_round_string) + '     FICA: $'+ fica_round_str)
+    report_file.write("\n                           MEDICARE: $" + medicare_round_str)
+    report_file.write("\n                           TOTAL TAX: $" + totalTax_string)
     report_file.write("\nNET PAY: $" + netPay_string)
     report_file.write("\n\nCHECK NUMBER: _______")
     report_file.write("\n\nDATE: __/__/__")
@@ -966,6 +985,94 @@ def delete_employee():
     print(remove_employee.upper()+' ' +'has been removed from the database!')
     time.sleep(2)
 
+def move_files():
+    employee_name_file = open("employee_firstname_file.py" , 'r')
+    data = employee_name_file.readline()
+    decode_the_data = json.loads(data)
+    print(decode_the_data)
+    length = len(decode_the_data)
+    for names in range(length):
+        subprocess.call("mv -f " + data[names] + 'inout.txt' , shell = True)
+        print(data[names])
+        print(data[names] + 'has been moved to /Users/Kyle/Desktop/folder')
+        time.sleep(4)
+
+def insert_time():
+    insert_time_dict = {}
+    employee = input("Enter the firstname of the employee to add the time to.").lower()
+    timefile_read = open(employee + "inout.txt", 'r')
+    objectsArray = timefile_read.readlines()
+    timefile_read.close()
+    theLength = len(objectsArray)
+    for eachObject in range(theLength):
+        print('Index = '+str(eachObject)+'  '+objectsArray[eachObject])
+    insert_index = int(input("Enter the index number where you want the new time added: "))
+    newtime = input("Enter the date (mm/dd/yyyy): ")
+    time_in = input("Enter the time in. (12 hour clock)  (hh:mm)")
+    am_or_pm = input("AM or PM?").lower()
+    if am_or_pm == 'pm':
+        the_in_hours = time_in[0:2]
+        if time_in[0]== '0':
+            the_in_hours = time_in[1:2]
+        if str(the_in_hours) == '12':
+            time_in = time_in
+        else:
+            to_military = eval(the_in_hours)
+            military_time = str(to_military + 12)
+            minutes_to_add = time_in[2:5]
+            time_in = military_time + minutes_to_add
+
+    time_out = input("Enter the time out (12 hour clock)  (hh:mm)")
+    am_or_pm = input("AM or PM?").lower()
+    if am_or_pm == 'pm':
+        the_out_hours = time_out[0:2]
+        if time_out[0]== '0':
+            the_out_hours = time_out[1:2]
+        if str(the_out_hours) == '12':
+            time_in = time_in
+        else:
+            to_military = eval(the_out_hours)
+            military_time = str(to_military + 12)
+            minutes_to_add = time_out[2:5]
+            time_out = military_time + minutes_to_add
+
+    insert_time_dict['OUT'] = time_out
+    insert_time_dict['DATE'] = newtime
+    insert_time_dict['IN'] = time_in
+    timefile = open(employee + "inout.txt", 'w')
+    timefile.close()
+    timefile = open(employee + "inout.txt", 'a')
+
+    for eachObject in range(theLength):
+        if eachObject == insert_index:
+            encode_json = json.dumps(insert_time_dict)
+            timefile.write(encode_json + '\n')
+
+        timefile.write(objectsArray[eachObject])
+
+    timefile.close()
+    print("Time has been inserted to "+employee.upper()+"'s file.")
+    time.sleep(3)
+    #encode_json = json.dumps(insert_time_dict)
+
+def delete_time():
+    delete_time_dict = {}
+    employee = input("Enter the firstname of the employee where you want to delete time.").lower()
+    timefile_read = open(employee + "inout.txt", 'r')
+    objectsArray = timefile_read.readlines()
+    timefile_read.close()
+    theLength = len(objectsArray)
+    for eachObject in range(theLength):
+        print('Index = '+str(eachObject)+'  '+objectsArray[eachObject])
+    index = int(input("Choose the index."))
+    del objectsArray[index]
+    timefile = open(employee + "inout.txt", 'w')
+    timefile.close()
+    timefile = open(employee + "inout.txt", 'a')
+    for eachObject in range(theLength-1):
+        timefile.write(objectsArray[eachObject])
+    timefile.close()
+
 X = True
 while X:
     try:
@@ -975,7 +1082,7 @@ while X:
             Y = True
             while Y:
                 subprocess.call("tput reset", shell = True)
-                person = input("Enter firstname of employee or 'add' to add employee. \nEnter 'remove' to remove employee , 'add time' to add time,  or 'delete' to erase all time files: ").lower()
+                person = input("Enter firstname of employee to see recent info.\n'add' to add employee. \n'remove' to remove employee.\n'add time' to add time to end\n'insert' to insert time in a specific place\n'hours' for total hours\n'delete' to erase all time files.\n--->").lower()
                 if person == 'add':
                     try:
                         add_employee()
@@ -987,12 +1094,20 @@ while X:
                     delete_employee()
                 elif person == 'delete':
                     print("trying")
-                    delete_time_files()
+                    move_files()
                 elif person == 'exit':
                     Y = False
                     X = False
                 elif person == 'add time':
+                    add_time()
+                elif person == 'hours':
+                    employeeHr = input("Which employee? ")
+                    print_total_hours()
+                    input()
+                elif person == 'insert':
                     insert_time()
+                elif person == 'delete time':
+                    delete_time()
                 else:
                     name_file = open('employee_firstname_file.py', 'r')
                     getnames = name_file.readline()
